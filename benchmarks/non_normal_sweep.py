@@ -16,15 +16,16 @@ sys.path.append('..')
 from metrics.trivial_baselines import compute_all_trivial_baselines
 from metrics.contracts import compute_all_contracts
 from benchmarks.long_memory_tasks import (
-    create_non_normal_ssm_matrix, compute_linear_stability_outcome,
-    compute_memory_retention_outcome
+    create_non_normal_ssm_matrix, create_hyena_like_matrix,
+    compute_linear_stability_outcome, compute_memory_retention_outcome
 )
 
 
 def run_non_normal_sweep(eigenvalue_radii: List[float] = [0.85, 0.90, 0.95, 0.99],
                         condition_V_values: List[float] = [1.0, 10.0, 100.0, 1000.0],
                         N: int = 32, L: int = 2, T_test: int = 200,
-                        seeds: List[int] = [1, 2, 3]) -> List[Dict[str, Any]]:
+                        seeds: List[int] = [1, 2, 3],
+                        ssm_families: List[str] = ['s4_like']) -> List[Dict[str, Any]]:
     """
     Run two-axis sweep: eigenvalue_radius × condition_V.
 
@@ -46,23 +47,30 @@ def run_non_normal_sweep(eigenvalue_radii: List[float] = [0.85, 0.90, 0.95, 0.99
     results = []
     config_id = 0
 
-    print(f"Running non-normal sweep: {len(eigenvalue_radii)}×{len(condition_V_values)}×{len(seeds)} = "
-          f"{len(eigenvalue_radii)*len(condition_V_values)*len(seeds)} configurations")
+    total_configs = len(eigenvalue_radii) * len(condition_V_values) * len(seeds) * len(ssm_families)
+    print(f"Running non-normal sweep: {len(eigenvalue_radii)}×{len(condition_V_values)}×{len(seeds)}×{len(ssm_families)} = {total_configs} configurations")
 
-    for r in eigenvalue_radii:
-        for cond_V in condition_V_values:
-            for seed in seeds:
-                config_id += 1
-                print(f"  Config {config_id:02d}: r={r:.3f}, κ(V)={cond_V:g}, seed={seed}")
+    for ssm_family in ssm_families:
+        for r in eigenvalue_radii:
+            for cond_V in condition_V_values:
+                for seed in seeds:
+                    config_id += 1
+                    print(f"  Config {config_id:02d}: family={ssm_family}, r={r:.3f}, κ(V)={cond_V:g}, seed={seed}")
 
-                # Create non-normal matrices for this configuration
-                layer_matrices = []
-                for layer_idx in range(L):
-                    A = create_non_normal_ssm_matrix(
-                        N=N, eigenvalue_radius=r, condition_V=cond_V,
-                        seed=seed + layer_idx  # Different seed per layer
-                    )
-                    layer_matrices.append(A)
+                    # Create matrices based on family type
+                    layer_matrices = []
+                    for layer_idx in range(L):
+                        if ssm_family == 'hyena_like':
+                            A = create_hyena_like_matrix(
+                                N=N, eigenvalue_radius=r, condition_V=cond_V,
+                                seed=seed + layer_idx
+                            )
+                        else:  # s4_like
+                            A = create_non_normal_ssm_matrix(
+                                N=N, eigenvalue_radius=r, condition_V=cond_V,
+                                seed=seed + layer_idx
+                            )
+                        layer_matrices.append(A)
 
                 # Compute contract metrics
                 B = np.random.RandomState(seed).randn(N, 1)
@@ -97,6 +105,7 @@ def run_non_normal_sweep(eigenvalue_radii: List[float] = [0.85, 0.90, 0.95, 0.99
                 result = {
                     'config_id': f'NN{config_id:02d}',
                     'sweep_type': 'non_normal',
+                    'ssm_family': ssm_family,
                     'target_eigenvalue_radius': r,
                     'target_condition_V': cond_V,
                     'N': N,
@@ -189,6 +198,7 @@ def export_non_normal_to_csv(results: List[Dict[str, Any]], filename: str):
         base_row = {
             'config_id': result['config_id'],
             'sweep_type': result['sweep_type'],
+            'ssm_family': result['ssm_family'],
             'target_eigenvalue_radius': result['target_eigenvalue_radius'],
             'target_condition_V': result['target_condition_V'],
             'actual_spectral_radius': result['matrix_properties']['actual_spectral_radius'],

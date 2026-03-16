@@ -598,6 +598,54 @@ def benchmark_summary():
     print("- Memory retention: Signal preservation over long horizons")
 
 
+def create_hyena_like_matrix(N: int, eigenvalue_radius: float, condition_V: float,
+                           seed: Optional[int] = None) -> np.ndarray:
+    """
+    Create Hyena-like convolution-based matrix for generalization testing.
+
+    Hyena uses long convolution operators rather than recurrence. The failure mode
+    is bandwidth saturation rather than eigenvalue amplification.
+
+    Args:
+        N: Matrix dimension
+        eigenvalue_radius: Target spectral radius
+        condition_V: Target eigenvector conditioning
+        seed: Random seed
+
+    Returns:
+        A: Hyena-like transition matrix with circulant structure
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Hyena-like: circulant structure (approximating convolution)
+    # Create circulant matrix with controlled properties
+    first_row = np.zeros(N)
+
+    # Exponential decay kernel (typical for Hyena)
+    decay_rate = -np.log(eigenvalue_radius) / (N // 4)
+    for i in range(min(N//2, 10)):  # Limited support
+        first_row[i] = eigenvalue_radius * np.exp(-decay_rate * i)
+
+    # Create circulant matrix
+    A = np.zeros((N, N))
+    for i in range(N):
+        A[i, :] = np.roll(first_row, i)
+
+    if condition_V > 1.1:
+        # Add non-normal structure but preserve circulant base
+        perturbation = 0.1 * np.random.randn(N, N)
+        # Scale perturbation to achieve target conditioning
+        A += perturbation * (condition_V / 100.0)
+
+    # Ensure spectral radius constraint
+    current_radius = np.max(np.abs(np.linalg.eigvals(A)))
+    if current_radius > eigenvalue_radius * 1.05:
+        A = A * (eigenvalue_radius / current_radius)
+
+    return A
+
+
 if __name__ == "__main__":
     # Run validation tests
     print("Testing synthetic benchmark task generation...")
