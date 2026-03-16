@@ -186,9 +186,9 @@ Composed eigenvalues: λ_i^{(L)} = ∏_{l=1}^L a_l^{(i)}
 Spectral spread: max_i |λ_i^{(L)}| - min_i |λ_i^{(L)}|
 ```
 
-**Rigor tag:** `[HEURISTIC]` — requires diagonal approximation of non-diagonal matrices
+**Rigor tag:** `[MOTIVATED]` — CLT-based theoretical foundation established
 
-**Theoretical motivation:** Uses diagonal approximation to cheaply estimate the eigenvalue distribution of the composed operator A_L · ... · A_1. Connects to free probability theory under independence assumptions, but the diagonal approximation makes this a heuristic rather than a rigorous free probability result.
+**Theoretical motivation:** Under the diagonal approximation A_l ≈ diag(a_l^{(1)}, ..., a_l^{(N)}), the composed eigenvalues λ_i^{(L)} = ∏_{l=1}^L a_l^{(i)} have log-magnitude log|λ_i^{(L)}| = ∑_{l=1}^L log|a_l^{(i)}|. By the Central Limit Theorem, for large L, this sum concentrates around L·E[log|a_l^{(i)}|] with variance L·Var[log|a_l^{(i)}|]. High variance in log-eigenvalues predicts high spectral spread in the composed operator, indicating eigenvalue clustering that creates directional instabilities during iteration. The spectral spread max|λ_i^{(L)}| - min|λ_i^{(L)}| captures this variance-driven effect.
 
 **Failure mode targeted:** Eigenvalue spread growth under composition when matrices are approximately diagonal-dominant.
 

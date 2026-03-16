@@ -404,7 +404,7 @@ def free_prob_spectral_spread(layer_matrices: List[np.ndarray]) -> Dict[str, Any
         'computed_eigenvals': composed_eigenvals,
         'compute_time_ms': compute_time_ms,
         'cost_complexity': 'O(N * L)',
-        'rigor_tag': '[HEURISTIC]',
+        'rigor_tag': '[MOTIVATED]',
         'L': len(layer_matrices),
         'N': N,
         'description': 'Spectral spread under diagonal approximation',

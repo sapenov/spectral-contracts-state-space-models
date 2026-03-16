@@ -4,13 +4,13 @@
 C3:
   metric_id: C3
   name: "Pseudospectral sensitivity proxy"
-  threshold_red: 1.2
-  threshold_yellow: 1.05
-  calibration_set_size: 47
-  calibration_f1_at_red: 0.81
-  calibration_auc: 0.84
-  ssm_families_calibrated_on: [s4_like, hyena_like]
-  note: "Threshold not validated for Mamba-like models with input-dependent gating"
+  threshold_red: 1.156
+  threshold_yellow: 1.002
+  calibration_set_size: 23
+  calibration_f1_at_red: 0.750
+  calibration_auc: 0.911
+  ssm_families_calibrated_on: [s4_like]
+  note: "Calibrated on S4-like non-normal regime data only. Not validated for Hyena-like or Mamba-like architectures."
 
 C6:
   metric_id: C6

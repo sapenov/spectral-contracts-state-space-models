@@ -95,38 +95,32 @@ def max_operator_norm(layer_matrices: List[np.ndarray]) -> Dict[str, Any]:
 
 def initial_gradient_norm(model, loss_fn, inputs, targets) -> Dict[str, Any]:
     """
-    Compute gradient norm at step 0 (before any training updates).
+    Initial gradient norm baseline - NOT APPLICABLE to linear dynamics regime.
+
+    This baseline applies to neural network training with actual loss functions.
+    The current study tests SSM stability via linear matrix dynamics without
+    training loops, making gradient norms undefined.
 
     Args:
-        model: SSM model with parameters
-        loss_fn: Loss function
-        inputs: Input batch for gradient computation
-        targets: Target batch for gradient computation
+        model: SSM model with parameters (not used in linear regime)
+        loss_fn: Loss function (not applicable)
+        inputs: Input batch (not applicable)
+        targets: Target batch (not applicable)
 
     Returns:
-        Dictionary with metric value and metadata
+        Dictionary indicating baseline is not applicable
 
-    Note: This is a placeholder implementation. In practice, this would
-    use the actual model's automatic differentiation system (JAX, PyTorch, etc.)
+    Note: Excluded from analysis per methodology - linear dynamics testing
+    does not involve gradient computation or loss function optimization.
     """
-    start_time = time.perf_counter()
-
-    # Placeholder: In real implementation, compute gradients using autodiff
-    # grad = compute_gradients(loss_fn(model(inputs), targets), model.parameters())
-    # grad_norm = np.linalg.norm(flatten_gradients(grad))
-
-    # For now, return a placeholder value
-    grad_norm = np.random.uniform(0.1, 2.0)  # Replace with actual computation
-
-    compute_time_ms = (time.perf_counter() - start_time) * 1000
-
     return {
         'metric_id': 'trivial_grad',
-        'value': grad_norm,
-        'compute_time_ms': compute_time_ms,
-        'description': 'L2 norm of gradients at initialization (step 0)',
-        'cost_complexity': 'O(forward + backward pass)',
-        'note': 'Placeholder implementation - requires actual model integration'
+        'value': None,
+        'compute_time_ms': 0.0,
+        'description': 'Initial gradient norm - NOT APPLICABLE to linear dynamics regime',
+        'cost_complexity': 'N/A',
+        'note': 'Excluded: Linear dynamics testing does not involve gradient computation',
+        'exclusion_reason': 'Methodological - testing matrix dynamics, not neural network training'
     }
 
 
