@@ -1,14 +1,14 @@
-# Recurrence and Convolution SSMs Fail Differently: A Spectral Contracts Framework for Architecture-Specific Pre-Training Stability Prediction
+# Architecture-Dependent Stability Diagnostics for State-Space Models: When Pseudospectral Analysis Beats Trivial Baselines
 
 ## Abstract
 
-**Recurrence-based and convolution-based state-space models (SSMs) fail via structurally different mechanisms that require different pre-training stability diagnostics.** Through systematic evaluation of spectral contract metrics across S4-like and Hyena-like architectures, we establish the first **architectural failure mode taxonomy** for SSM stability prediction.
+**Recurrence-based and convolution-based state-space model families exhibit structurally different dynamical failure modes that require different pre-training stability diagnostics.** Through systematic evaluation of spectral contract metrics across two controlled synthetic matrix families motivated by S4-like and Hyena-like SSM architectures, we establish evidence for an **architecture-dependent failure mode taxonomy** in linear long-horizon stability prediction.
 
-Using non-circular linear dynamics outcomes to prevent false correlations, we demonstrate that recurrence-based SSMs with non-normal transition matrices exhibit failure modes that spectral radius analysis misses. Pseudospectral sensitivity achieves Spearman ρ=0.835 with stability outcomes, outperforming the best trivial baseline by ΔSpearman=+0.158 (n=75, p<0.001) and achieving AUROC=0.948 for divergence prediction.
+Using non-circular linear dynamics outcomes to prevent false correlations, we demonstrate that recurrence-inspired matrices with non-normal transition structure exhibit failure modes that spectral radius analysis misses. Pseudospectral sensitivity achieves Spearman ρ=0.835 with dynamical stability outcomes, outperforming the best trivial baseline by ΔSpearman=+0.158 (n=75, p<0.001) and achieving AUROC=0.948 for divergence prediction.
 
-However, convolution-based SSMs exhibit **amplitude-dominated failure modes** where operator norm alone achieves ρ=0.819 and AUROC=0.956, with spectral contracts providing no additional predictive value (n=125). This architectural specificity reveals that **recurrence SSMs fail via non-normal transient amplification** requiring pseudospectral diagnostics, while **convolution SSMs fail via amplitude saturation** detectable with spectral norms.
+However, convolution-inspired matrices exhibit **amplitude-dominated failure modes** where operator norm alone achieves ρ=0.819 and AUROC=0.956, with spectral contracts providing no additional predictive value (n=125). This architecture-dependent contrast reveals that **recurrence-inspired families require non-normality-aware diagnostics** while **convolution-inspired families are already well-served by spectral norms**.
 
-We provide practical guidance through our `ssm-contracts` CLI tool with family-specific risk assessment and establish methodological principles for testing stability diagnostics in appropriate mathematical regimes.
+We provide practical guidance through our `ssm-contracts` CLI tool with family-specific risk assessment, and establish methodological principles for testing stability diagnostics in appropriate mathematical regimes.
 
 **Keywords**: State-space models, stability prediction, pseudospectra, architectural taxonomy
 
@@ -16,52 +16,56 @@ We provide practical guidance through our `ssm-contracts` CLI tool with family-s
 
 ## 1. Introduction
 
-### 1.1 The Cost of SSM Training Failures
+### 1.1 The Cost of SSM Dynamical Instabilities
 
 State-space models (SSMs) have emerged as powerful alternatives to transformers for long-sequence modeling, with architectures like S4 [Gu et al., 2022], Mamba [Gu & Dao, 2023], and Hyena [Poli et al., 2023] achieving state-of-the-art performance on tasks requiring extended context. However, training these models on long sequences remains computationally expensive, with multi-day GPU runs common for production-scale experiments. When training fails due to gradient explosion, vanishing gradients, or numerical instabilities, the computational cost is entirely lost.
 
 Current practice for pre-training stability assessment relies primarily on **spectral radius analysis** — ensuring all eigenvalues of the SSM transition matrices have magnitude less than 1.0. While this provides a necessary condition for asymptotic stability, it is insufficient for predicting training behavior in practice. Recent work on SSM initialization [Orvieto et al., 2023] has identified cases where spectral radius constraints are satisfied but training still fails, suggesting that additional pre-training diagnostics are needed.
 
+We focus on a controlled proxy for this problem: **predicting linear long-horizon dynamical instability** from pre-computation spectral properties. While full training stability depends on additional factors (optimizers, batch statistics, learning rate schedules), the linear dynamical regime isolates the spectral effects we study and provides a tractable benchmark for comparing diagnostic approaches.
+
 ### 1.2 Insufficiency of Spectral Radius: Motivating Examples
 
 We demonstrate the limitation of spectral radius through two constructed cases that isolate different failure mechanisms:
 
-**Case A (Hidden Instability)**: Consider an SSM transition matrix A = VDV⁻¹ where D contains eigenvalues [0.90, 0.85, 0.80, ...] (all safely inside the unit circle) but V has condition number κ(V) ≈ 1000. The spectral radius is 0.90, suggesting safe training. However, the ill-conditioned eigenvector matrix causes transient amplification that leads to training divergence despite the "safe" eigenvalue analysis.
+**Case A (Hidden Instability)**: Consider an SSM transition matrix A = VDV⁻¹ where D contains eigenvalues [0.90, 0.85, 0.80, ...] (all safely inside the unit circle) but V has condition number κ(V) ≈ 1000. The spectral radius is 0.90, suggesting safe dynamics. However, the ill-conditioned eigenvector matrix causes transient amplification — the state norm grows substantially over intermediate horizons before eventually decaying — leading to dynamical divergence in our linear benchmark despite the "safe" eigenvalue analysis.
 
-**Case B (Apparent Risk)**: Consider A = diag(0.999, 0.95, 0.95, ...) where the spectral radius is 0.999, very close to the instability boundary. Traditional analysis would flag this as high risk. However, the diagonal structure ensures no non-normal amplification occurs, and training proceeds stably despite the concerning spectral radius.
+**Case B (Apparent Risk)**: Consider A = diag(0.999, 0.95, 0.95, ...) where the spectral radius is 0.999, very close to the instability boundary. Traditional analysis would flag this as high risk. However, the diagonal structure ensures no non-normal amplification occurs, and the linear dynamics remain stable despite the concerning spectral radius.
 
-These cases reveal that **spectral radius captures asymptotic behavior but misses transient amplification effects** that dominate training dynamics over finite horizons.
+These cases reveal that **spectral radius captures asymptotic behavior but misses transient amplification effects** that dominate dynamical behavior over finite horizons — the operationally relevant regime for long-sequence SSM stability.
 
-### 1.3 Spectral Contracts Framework
+### 1.3 Spectral Contracts as Pre-Training Dynamical Screens
 
-We introduce **spectral contracts** — scalar functions C(θ) of SSM parameters θ computable before training that satisfy three criteria:
+We introduce **spectral contracts** — scalar functions C(θ) of SSM parameters θ computable before training that serve as mechanistic pre-training screens for linear long-horizon dynamical risk. A contract satisfies three criteria:
 
-1. **Predictive**: Statistically significant monotone relationship with stability outcomes (Spearman ρ ≥ 0.60)
+1. **Predictive**: Statistically significant monotone relationship with linear dynamical stability outcomes (Spearman ρ ≥ 0.60)
 2. **Informative**: Strictly improves over trivial baselines (ΔSpearman ≥ 0.10)
 3. **Cheap**: Computable in O(N²·L) time or better for practical deployment
 
+We position contracts as **mechanistic screens**, not replacements for end-to-end training evaluation. They predict linearized long-horizon dynamical risk from matrix structure alone, which is a tractable and interpretable proxy for the full training stability problem.
+
 Our evaluation focuses on **pseudospectral sensitivity** (C3), which measures the ε-pseudospectral radius — capturing how eigenvalues move under small matrix perturbations — to detect non-normal transient amplification that spectral radius alone misses.
 
-### 1.4 Architectural Taxonomy Discovery
+### 1.4 Architecture-Dependent Diagnostic Contrast
 
-Our initial hypothesis was that spectral contracts would generalize across SSM families. However, systematic testing revealed **architecture-specific failure modes**:
+Our initial hypothesis was that spectral contracts would generalize across SSM families. We study two controlled synthetic matrix families motivated by published SSM architectures: a recurrence-inspired structured family (motivated by S4/DSS-style diagonal-plus-noise transition matrices) and a convolution-inspired circulant family (motivated by Hyena-style long-convolution operators). This controlled design allows regime-specific evaluation without optimizer confounds.
 
-- **Recurrence-based SSMs** (S4-like): Fail via non-normal transient amplification in transition matrices
-- **Convolution-based SSMs** (Hyena-like): Fail via amplitude saturation in convolution filters
+Systematic testing revealed **architecture-dependent diagnostic behavior**:
 
-This architectural specificity, rather than being a limitation, constitutes our **primary scientific contribution**: the first systematic analysis of failure mode differences across SSM families, with empirical validation that different architectures require different stability diagnostics.
+- **Recurrence-inspired family**: Non-normal transient amplification in transition matrices — pseudospectral sensitivity provides substantial improvement over trivial baselines
+- **Convolution-inspired family**: Amplitude-dominated failure modes — operator norm alone is already an excellent predictor; contracts add no value
 
-The finding that convolution SSMs already achieve excellent prediction with operator norm alone (ρ=0.819) while recurrence SSMs require more sophisticated analysis provides actionable guidance for practitioners: start with trivial baselines, escalate to architecture-specific contracts only when needed.
+This architecture-dependent contrast, rather than being a limitation, constitutes our **primary empirical contribution**: evidence that different SSM architectural families benefit from fundamentally different stability diagnostics, with practical guidance for when to escalate beyond trivial baselines.
 
 ### 1.5 Contributions
 
-1. **Empirical validation** that spectral contracts outperform trivial baselines in the non-normal recurrence regime (ΔSpearman=+0.158, AUROC=0.948)
+1. **Benchmark methodology**: Non-circular linear dynamics outcomes and regime-appropriate non-normal parameter sweeps that enable legitimate stability diagnostic comparison (§3.4, §3.5)
 
-2. **Architectural failure mode taxonomy** distinguishing recurrence vs. convolution failure mechanisms with matched diagnostic approaches
+2. **Recurrence-side positive result**: Pseudospectral sensitivity (C3) achieves ΔSpearman=+0.158 over the best trivial baseline and AUROC=0.948 on the recurrence-inspired family in the non-normal regime (§4.1)
 
-3. **Methodological framework** for testing stability diagnostics in appropriate mathematical regimes, including non-circular outcome generation
+3. **Cross-family diagnostic contrast**: Evidence that convolution-inspired families are already well-served by operator norm (ρ=0.819), while recurrence-inspired families in the non-normal regime require pseudospectral analysis — supporting an architecture-dependent diagnostic taxonomy in our controlled benchmark (§4.2, §4.3)
 
-4. **Practical tool** (`ssm-contracts` CLI) with family-specific guidance and calibrated risk assessment
+4. **Research artifact**: `ssm-contracts` CLI tool implementing these diagnostics with calibrated thresholds and explicit architectural scope documentation (§5)
 
 ---
 
@@ -71,7 +75,7 @@ The finding that convolution SSMs already achieve excellent prediction with oper
 
 Early SSM work established spectral radius constraints as fundamental stability requirements [Gu et al., 2022]. The Linear Recurrent Unit (LRU) [Orvieto et al., 2023] explicitly constrains eigenvalues to prevent instabilities, while HiPPO initialization [Gu et al., 2021] provides theoretically motivated eigenvalue placement for memory retention. However, these approaches focus on sufficient conditions for stability rather than predictive diagnostics for arbitrary initializations.
 
-Recent work has identified cases where standard eigenvalue constraints are satisfied but training still fails [Orvieto et al., 2023], motivating the need for richer pre-training stability analysis. Our work provides the first systematic framework for predicting these failure cases.
+Recent work has identified cases where standard eigenvalue constraints are satisfied but training still fails [Orvieto et al., 2023], motivating the need for richer pre-training stability analysis. Our work provides a controlled benchmark for evaluating pre-training stability diagnostics in this setting.
 
 ### 2.2 Pseudospectral Analysis in Dynamical Systems
 
@@ -139,11 +143,11 @@ Cost: O(N⋅L) for diagonal approximation.
 
 ### 3.3 SSM Family Matrix Generation
 
-We test two representative SSM families with distinct architectural properties:
+We study two controlled synthetic matrix families motivated by recurrence-based and convolution-based SSM architectures, allowing regime-specific evaluation without optimizer confounds.
 
-**S4-like (Recurrence-based)**: Structured transition matrices with learnable diagonal components and small off-diagonal coupling terms. Matrix generation: `A = diag(eigenvals) + 0.01⋅randn(N,N)` with rescaling to maintain spectral radius bounds.
+**Recurrence-inspired family (motivated by S4/DSS)**: Structured transition matrices with learnable diagonal components and small off-diagonal coupling terms, representing the near-diagonal structure common in published recurrence-based SSMs. Matrix generation: `A = diag(eigenvals) + 0.01⋅randn(N,N)` with rescaling to maintain spectral radius bounds. We do not claim these matrices are identical to published S4 or DSS implementations; they capture the structural property (near-diagonal, potentially non-normal) that motivates the diagnostic comparison.
 
-**Hyena-like (Convolution-based)**: Circulant matrices approximating long-convolution operators with exponential decay kernels. These naturally produce broad eigenvalue spectra (eigenvalue spreads of 100x or more) representing different frequency components.
+**Convolution-inspired family (motivated by Hyena)**: Circulant matrices approximating long-convolution operators with exponential decay kernels, representing the broad-spectrum filter structure common in published convolution-based SSMs. These naturally produce broad eigenvalue spectra (eigenvalue spreads of ~156x) representing different frequency components. We do not claim these matrices are identical to published Hyena implementations; they capture the structural property (broad spectrum, amplitude-dominated) that motivates the diagnostic comparison.
 
 **Non-Normal Regime Construction**: To test contracts in their intended domain, we systematically vary eigenvector conditioning alongside spectral radius. Matrices are constructed as `A = V⋅D⋅V^{-1}` where D contains target eigenvalues and V is iteratively adjusted to achieve specified condition number κ(V) ∈ [1, 1000].
 
@@ -171,11 +175,11 @@ This approach ensures that outcomes reflect actual dynamical behavior rather tha
 
 ## 4. Results
 
-### 4.1 Recurrence-Based SSMs (S4-like): Contracts Outperform Baselines
+### 4.1 Recurrence-Inspired Family: Contracts Outperform Baselines in Non-Normal Regime
 
-We evaluated all metrics on 75 S4-like configurations spanning eigenvalue radius r ∈ [0.95, 1.005] and eigenvector conditioning κ(V) ∈ [1, 1000]. This parameter space includes both normal matrices (κ(V)=1) where spectral radius should suffice, and non-normal matrices (κ(V)≥100) where contracts should provide additional predictive value.
+We evaluated all metrics on 75 recurrence-inspired configurations spanning eigenvalue radius r ∈ [0.95, 1.005] and eigenvector conditioning κ(V) ∈ [1, 1000]. This parameter space includes both normal matrices (κ(V)=1) where spectral radius should suffice, and non-normal matrices (κ(V)≥100) where contracts are designed to provide additional predictive value over linear dynamical outcomes.
 
-**Table 1: S4-like SSM Contract Performance**
+**Table 1: Recurrence-Inspired Family — Contract Performance**
 
 | Metric | Spearman ρ | ΔSpearman | AUROC | Classification |
 |--------|------------|-----------|-------|----------------|
@@ -190,21 +194,13 @@ We evaluated all metrics on 75 S4-like configurations spanning eigenvalue radius
 
 *Note: All correlations significant at p<0.001 except C4 (constant values).*
 
-**Key Findings**:
+**Key Finding**: In the non-normal regime (κ(V)≥100), C3 provides a meaningful improvement over the best trivial baseline in continuous rank prediction (ΔSpearman=+0.158), even though operator norm is already a strong binary classifier (AUROC=0.934). C3's advantage lies in distinguishing cases with similar eigenvalue radius but different transient amplification — the regime that matters for architecture search and stability triage.
 
-1. **C3 achieves both success criteria**: ΔSpearman = +0.158 (exceeds SC-1 threshold of 0.10) and AUROC = 0.948 (exceeds SC-2 threshold of 0.75).
+### 4.2 Convolution-Inspired Family: Trivial Baselines Already Sufficient
 
-2. **Operator norm emerges as surprisingly strong baseline**: AUROC = 0.934, nearly matching C3's binary prediction performance. However, C3's rank correlation advantage (ρ=0.835 vs 0.677) indicates superior continuous relationship modeling.
+We evaluated the same metrics on 125 convolution-inspired configurations using identical parameter ranges to test whether the recurrence-side finding generalizes.
 
-3. **Multiple metrics achieve excellent binary classification**: Five metrics achieve AUROC ≥ 0.87, but only C3 meaningfully improves rank correlation over trivial baselines.
-
-**Mechanism Analysis**: C3's success derives from detecting non-normal transient amplification in matrices with high eigenvector conditioning. When κ(V) ≥ 500, matrices with identical eigenvalues exhibit dramatically different stability behavior, with pseudospectral sensitivity correctly distinguishing cases where spectral radius analysis fails.
-
-### 4.2 Convolution-Based SSMs (Hyena-like): Trivial Baselines Sufficient
-
-We evaluated the same metrics on 125 Hyena-like configurations using identical parameter ranges to test generalization across architectural families.
-
-**Table 2: Hyena-like SSM Contract Performance**
+**Table 2: Convolution-Inspired Family — Contract Performance**
 
 | Metric | Spearman ρ | ΔSpearman | AUROC | Classification |
 |--------|------------|-----------|-------|----------------|
@@ -217,7 +213,7 @@ We evaluated the same metrics on 125 Hyena-like configurations using identical p
 | contract_C5 | 0.289 | -0.530 | 0.722 | UNINFORMATIVE |
 | contract_C6 | 0.422 | -0.397 | 0.731 | UNINFORMATIVE |
 
-*Note: C1 and C4 are not reported for Hyena-like architectures due to architectural incompatibility with circulant eigenvalue structure (see §5.2). TB3 (composed Jacobian norm) correlation analysis was not completed for this study.*
+*‡C1 and C4 are not reported for the convolution-inspired family due to architectural incompatibility with circulant eigenvalue structure (see §4.3). TB3 (composed Jacobian norm) analysis was not completed for this study.*
 
 **Key Findings**:
 
@@ -225,13 +221,13 @@ We evaluated the same metrics on 125 Hyena-like configurations using identical p
 
 2. **Operator norm achieves excellent performance**: ρ=0.819, AUROC=0.956, demonstrating that amplitude-based failure modes are well-captured by spectral norm analysis.
 
-3. **C1 architecturally incompatible**: Hyena's circulant structure produces eigenvalue spreads (min≈0.006, max≈0.95) that cause composition underflow, making condition number analysis undefined. This is a structural property of broad-spectrum convolution filters, not an implementation limitation.
+3. **C3 shows no signal** (ρ=-0.107): The pseudospectral mechanism that helps on the recurrence-inspired family is irrelevant when amplitude, not non-normality, drives instability.
 
-### 4.3 Architectural Failure Mode Taxonomy
+### 4.3 Architecture-Dependent Diagnostic Contrast
 
-The contrasting results across families reveal **fundamentally different failure mechanisms**:
+The contrasting results across families provide evidence for **architecture-dependent failure modes in our controlled benchmark**:
 
-**Table 3: Failure Mode Taxonomy**
+**Table 3: Diagnostic Contrast Across Benchmark Families**
 
 | Architecture | Failure Mechanism | Eigenvalue Structure | Optimal Diagnostic | Why Contracts Needed |
 |-------------|-------------------|---------------------|-------------------|---------------------|
@@ -243,7 +239,7 @@ The contrasting results across families reveal **fundamentally different failure
 - **C3 on Hyena-like**: ρ=-0.107 (no signal)
 - **Generalization conclusion**: Architecture-specific diagnostics required
 
-This taxonomy provides actionable guidance: use spectral contracts for recurrence architectures in the non-normal regime, rely on trivial baselines for convolution architectures.
+This diagnostic contrast supports the hypothesis that recurrence-based and convolution-based SSM families require different stability assessment approaches. Further work with multiple family members and real trained models would be needed to elevate this from a benchmark finding to a general architectural principle.
 
 ---
 
@@ -287,13 +283,27 @@ The failure mode taxonomy suggests different monitoring strategies during SSM de
 
 ---
 
+## 5. The ssm-contracts Research Tool
+
+We release `ssm-contracts` as a **research diagnostic tool** implementing the contract metrics evaluated in this paper. The tool is intended as a research artifact for architecture exploration and stability screening, not as a production-validated stability guarantee. It provides red/yellow/green risk indicators based on thresholds calibrated on the benchmark families in this study; applicability to other architectures or larger scales requires separate validation.
+
+### 5.1 Scope Boundaries
+
+The tool explicitly documents:
+- Applicable families: recurrence-inspired (C3 relevant) vs. convolution-inspired (operator norm sufficient)
+- Scale limitations: calibrated at N≤64; larger scales require recalibration
+- Regime requirement: non-normal regime (κ(V)≥100) for contract metrics to add value over trivial baselines
+- Linear dynamics scope: predictions are for linearized dynamical risk, not full training stability
+
+---
+
 ## 6. Conclusion
 
 We establish that **spectral radius analysis is insufficient for recurrence-based SSMs in the non-normal regime** but remains adequate for convolution-based architectures. Pseudospectral sensitivity (C3) provides genuine predictive value (ΔSpearman=+0.158, AUROC=0.948) for S4-like recurrence SSMs, while operator norm analysis suffices for Hyena-like convolution SSMs.
 
-The **architectural failure mode taxonomy** — recurrence failures via non-normal transient amplification, convolution failures via amplitude saturation — provides the first principled framework for matching stability diagnostics to SSM architectural classes. This taxonomy guides both practitioners (when to use which diagnostic) and researchers (how to design architecture-appropriate stability analysis).
+The **architecture-dependent diagnostic contrast** — recurrence-inspired failures driven by non-normal transient amplification, convolution-inspired failures driven by amplitude saturation — provides evidence for a family-dependent diagnostic taxonomy and practical guidance for when to escalate beyond trivial baselines. This finding emerged from a failed universal generalization attempt: testing on normal diagonal matrices initially showed no contract adding value, which led to identifying the non-normal regime as the operative setting.
 
-Our `ssm-contracts` CLI tool implements this framework with calibrated thresholds and clear architectural scope boundaries, enabling pre-training risk assessment for production SSM development.
+Our `ssm-contracts` research tool implements this framework with calibrated thresholds and explicit scope documentation, enabling systematic stability screening for architecture exploration. Validation against real training loops and multiple family members remains future work.
 
 **Data and Code Availability**: Implementation, benchmark suite, and results data available at https://github.com/spectral-contracts/ssm-contracts
 
