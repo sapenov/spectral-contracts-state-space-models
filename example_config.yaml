@@ -1,0 +1,16 @@
+# Example SSM configuration file for spectral contracts evaluation
+
+# Model architecture
+ssm_family: s4_like  # Options: s4_like, mamba_like, hybrid
+state_dimension: 64  # N: size of hidden state
+depth: 8             # L: number of SSM layers
+sequence_length: 1024 # T: maximum sequence length for evaluation
+
+# Initialization parameters
+eigenvalue_radius: 0.95    # Maximum eigenvalue magnitude
+init_method: default       # Options: default, hippo, lru
+seed: 42                   # Random seed for reproducibility
+
+# Optional metadata
+experiment_name: "s4_baseline_experiment"
+description: "Baseline S4-like model for long-sequence tasks"

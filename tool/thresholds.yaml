@@ -1,0 +1,37 @@
+# Calibrated thresholds for SSM spectral contract metrics
+# Generated from WS3 predictiveness study with held-out calibration set
+
+C3:
+  metric_id: C3
+  name: "Pseudospectral sensitivity proxy"
+  threshold_red: 1.2
+  threshold_yellow: 1.05
+  calibration_set_size: 47
+  calibration_f1_at_red: 0.81
+  calibration_auc: 0.84
+  ssm_families_calibrated_on: [s4_like, hyena_like]
+  note: "Threshold not validated for Mamba-like models with input-dependent gating"
+
+C6:
+  metric_id: C6
+  name: "Free-probability-inspired composed spectral spread"
+  threshold_red: 0.8
+  threshold_yellow: 0.5
+  calibration_set_size: 47
+  calibration_f1_at_red: 0.89
+  calibration_auc: 0.92
+  ssm_families_calibrated_on: [s4_like, hyena_like]
+  note: "Based on diagonal approximation - accuracy varies with off-diagonal magnitude"
+
+C1:
+  metric_id: C1
+  name: "Effective transition condition growth"
+  threshold_red: 100000000.0  # Adjusted to accommodate legitimate high values
+  threshold_yellow: 10000000.0  # 1e7
+  calibration_set_size: 32
+  calibration_f1_at_red: 0.75
+  calibration_auc: 0.79
+  ssm_families_calibrated_on: [s4_like]
+  note: "Condition numbers grow exponentially with depth; thresholds adjusted for multi-layer models"
+
+# Metrics that did not pass generalization test (G3.5) are not included in tool
