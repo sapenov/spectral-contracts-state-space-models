@@ -80,6 +80,35 @@
 
 ## Limitations and Scope Boundaries
 
+## Claim: C1 Architecturally Undefined for Convolution SSMs
+
+**Statement**: "Effective transition condition growth (C1) is not a meaningful diagnostic for Hyena-like architectures because their broad-spectrum convolution filter design structurally requires small eigenvalues (min ≈ 0.006), causing C1 to saturate at the numerical cap for all configurations regardless of stability outcome."
+
+**Evidence**:
+- **Structural verification**: min|λ| = 0.006091 consistent across all seeds (architectural property)
+- **Eigenvalue spread**: ~156x range inherent to circulant convolution design
+- **C1 saturation**: All 125 Hyena configurations hit 1e8 cap due to 0.006^T underflow
+- **Architecture-specific**: S4-like matrices have min|λ| ≈ 0.67, avoiding underflow
+
+**Rigor Tag**: [EMPIRICAL] confirmed by sweep; theoretical explanation [MOTIVATED]
+
+**Sufficient Evidence**: YES - demonstrates structural incompatibility, not implementation failure
+
+**Reviewer Response**: "Why not use shorter T?" → T=5 gives computable values but they don't predict stability at operationally relevant T=500; the metric is inapplicable at diagnostic horizons.
+
+---
+
+## Enhanced Failure Mode Taxonomy
+
+| Architecture | Primary Failure Mode | Trivial Baseline Performance | C3 Performance | C1 Applicability |
+|-------------|---------------------|------------------------------|-----------------|-------------------|
+| **S4-like** | Non-normal transient amplification | Operator norm ρ=0.677 (insufficient) | ρ=0.835 (excellent) | Finite values, competitive |
+| **Hyena-like** | Amplitude saturation | Operator norm ρ=0.819 (excellent) | ρ=-0.107 (no signal) | **Structurally undefined** |
+
+**Architectural Insight**: The failure mechanisms are **structurally determined** by eigenvalue distributions, and appropriate metrics match the underlying mathematical structure.
+
+---
+
 ### Explicitly Acknowledged Limitations
 1. **Recurrence-focused**: C3 optimized for recurrence-based non-normal effects
 2. **Linear regime**: Dynamics testing in SSM linear regime, not full training simulation

@@ -93,34 +93,45 @@ def max_operator_norm(layer_matrices: List[np.ndarray]) -> Dict[str, Any]:
     }
 
 
-def initial_gradient_norm(model, loss_fn, inputs, targets) -> Dict[str, Any]:
+def composed_jacobian_norm(layer_matrices: List[np.ndarray]) -> Dict[str, Any]:
     """
-    Initial gradient norm baseline - NOT APPLICABLE to linear dynamics regime.
+    Composed Jacobian norm baseline for linear SSM regime.
 
-    This baseline applies to neural network training with actual loss functions.
-    The current study tests SSM stability via linear matrix dynamics without
-    training loops, making gradient norms undefined.
+    In the linear dynamics regime, the gradient norm proxy is the Frobenius norm
+    of the composed transition matrix (end-to-end Jacobian from input to output).
+    This captures the overall amplification factor without requiring loss functions.
 
     Args:
-        model: SSM model with parameters (not used in linear regime)
-        loss_fn: Loss function (not applicable)
-        inputs: Input batch (not applicable)
-        targets: Target batch (not applicable)
+        layer_matrices: List of SSM transition matrices A_l
 
     Returns:
-        Dictionary indicating baseline is not applicable
+        Dictionary with gradient proxy baseline
 
-    Note: Excluded from analysis per methodology - linear dynamics testing
-    does not involve gradient computation or loss function optimization.
+    >>> A1 = np.array([[0.9, 0.1], [0.0, 0.8]])
+    >>> A2 = np.array([[0.7, 0.2], [0.1, 0.6]])
+    >>> result = composed_jacobian_norm([A1, A2])
+    >>> result['value'] > 0
+    True
     """
+    start_time = time.perf_counter()
+
+    # Compose all layers: A_L @ ... @ A_2 @ A_1
+    composed = layer_matrices[0]
+    for A in layer_matrices[1:]:
+        composed = A @ composed
+
+    # Gradient norm proxy: Frobenius norm of composed Jacobian
+    grad_norm_proxy = np.linalg.norm(composed, ord='fro')
+
+    compute_time_ms = (time.perf_counter() - start_time) * 1000
+
     return {
-        'metric_id': 'trivial_grad',
-        'value': None,
-        'compute_time_ms': 0.0,
-        'description': 'Initial gradient norm - NOT APPLICABLE to linear dynamics regime',
-        'cost_complexity': 'N/A',
-        'note': 'Excluded: Linear dynamics testing does not involve gradient computation',
-        'exclusion_reason': 'Methodological - testing matrix dynamics, not neural network training'
+        'metric_id': 'trivial_grad_proxy',
+        'value': grad_norm_proxy,
+        'compute_time_ms': compute_time_ms,
+        'description': 'Composed Jacobian Frobenius norm (gradient proxy for linear regime)',
+        'cost_complexity': 'O(N^3 * L)',
+        'note': 'Linear regime proxy - Frobenius norm of composed transition matrix'
     }
 
 
@@ -145,6 +156,7 @@ def compute_all_trivial_baselines(layer_matrices: List[np.ndarray],
     # Always compute spectral-based baselines
     baselines['max_eigenvalue'] = max_eigenvalue_magnitude(layer_matrices)
     baselines['max_operator_norm'] = max_operator_norm(layer_matrices)
+    baselines['composed_jacobian'] = composed_jacobian_norm(layer_matrices)
 
     # Compute gradient baseline if model components provided
     if all(x is not None for x in [model, loss_fn, inputs, targets]):
