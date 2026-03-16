@@ -2,11 +2,13 @@
 
 ## Abstract
 
-Pre-training stability prediction for state-space models (SSMs) currently relies on spectral radius analysis, which fails to detect non-normal transient amplification in recurrence-based architectures. We introduce **spectral contracts** — computable pre-training diagnostics that capture stability risks beyond eigenvalue magnitude — and demonstrate when they provide genuine predictive value over trivial baselines.
+**Recurrence-based and convolution-based state-space models (SSMs) fail via structurally different mechanisms that require different pre-training stability diagnostics.** Through systematic evaluation of spectral contract metrics across S4-like and Hyena-like architectures, we establish the first **architectural failure mode taxonomy** for SSM stability prediction.
 
-Through systematic evaluation across recurrence-based (S4-like) and convolution-based (Hyena-like) SSM families using non-circular linear dynamics outcomes, we identify **architecturally distinct failure modes**. In recurrence-based SSMs with non-normal transition matrices, pseudospectral sensitivity achieves Spearman ρ=0.835 with stability outcomes, outperforming trivial baselines by ΔSpearman=+0.158 (n=75, p<0.001). However, convolution-based SSMs exhibit **amplitude-dominated failure modes** where operator norm alone achieves ρ=0.819, and spectral contracts provide no additional predictive value.
+Using non-circular linear dynamics outcomes to prevent false correlations, we demonstrate that recurrence-based SSMs with non-normal transition matrices exhibit failure modes that spectral radius analysis misses. Pseudospectral sensitivity achieves Spearman ρ=0.835 with stability outcomes, outperforming the best trivial baseline by ΔSpearman=+0.158 (n=75, p<0.001) and achieving AUROC=0.948 for divergence prediction.
 
-This architectural specificity — recurrence SSMs fail via non-normal transient amplification detectable by pseudospectral analysis, convolution SSMs fail via amplitude saturation detectable by spectral norms — constitutes our primary contribution: a **principled taxonomy of SSM failure modes** with matched diagnostics. We release `ssm-contracts`, a CLI tool implementing family-specific stability assessment with calibrated risk thresholds.
+However, convolution-based SSMs exhibit **amplitude-dominated failure modes** where operator norm alone achieves ρ=0.819 and AUROC=0.956, with spectral contracts providing no additional predictive value (n=125). This architectural specificity reveals that **recurrence SSMs fail via non-normal transient amplification** requiring pseudospectral diagnostics, while **convolution SSMs fail via amplitude saturation** detectable with spectral norms.
+
+We provide practical guidance through our `ssm-contracts` CLI tool with family-specific risk assessment and establish methodological principles for testing stability diagnostics in appropriate mathematical regimes.
 
 **Keywords**: State-space models, stability prediction, pseudospectra, architectural taxonomy
 
@@ -95,9 +97,9 @@ Before evaluating any contract metric, we establish three trivial baselines that
 
 **TB2 - Max Operator Norm**: `max_operator_norm = max_l ||A_l||_2` using the spectral norm of individual layers. This upper-bounds per-step amplification.
 
-**TB3 - Composed Jacobian Norm**: `composed_jacobian_norm = ||A_L ⋯ A_1||_F` using the Frobenius norm of the composed transition matrix. In the linear SSM regime, this serves as a gradient norm proxy, capturing end-to-end amplification without requiring loss function computation.
+**TB3 - Gradient Norm (Linear Regime Proxy)**: In the linear dynamics testing regime, traditional gradient norms requiring loss functions are undefined. The end-to-end gradient from input to output after L layers reduces to the composed Jacobian ∂h_L/∂h_0 = A_L ⋯ A_1. We use its Frobenius norm `||A_L ⋯ A_1||_F` as a mathematically principled proxy for gradient magnitude.
 
-The third baseline addresses the limitation that traditional gradient norms require neural network training loops. Our linear dynamics testing regime makes actual gradient computation undefined, so we use the composed Jacobian Frobenius norm as a mathematically principled proxy.
+This proxy captures end-to-end amplification effects similar to actual gradient norms in training, while remaining computable in the parameter-free linear regime. The reduction from three baselines to two effective baselines (eigenvalue magnitude and operator norm) reflects the methodological constraint of testing matrix dynamics rather than neural network training.
 
 ### 3.2 Contract Metrics
 
@@ -176,14 +178,16 @@ We evaluated all metrics on 75 S4-like configurations spanning eigenvalue radius
 
 | Metric | Spearman ρ | ΔSpearman | AUROC | Classification |
 |--------|------------|-----------|-------|----------------|
-| trivial_max_eigenvalue | 0.599 | 0 | 0.616 | Baseline |
+| trivial_max_eigenvalue | 0.599 | -0.077 | 0.616 | Weak Baseline |
 | **trivial_max_operator_norm** | **0.677** | **0** | **0.934** | **Strong Baseline** |
-| trivial_composed_jacobian | 0.651 | -0.026 | 0.918 | Baseline |
 | contract_C1 | 0.582 | -0.095 | 0.879 | THRESHOLD_ONLY |
 | contract_C2 | 0.602 | -0.075 | 0.919 | THRESHOLD_ONLY |
 | **contract_C3** | **0.835** | **+0.158** | **0.948** | **FULL CONTRACT** |
+| contract_C4 | constant | undefined | 0.500 | UNINFORMATIVE |
 | contract_C5 | 0.583 | -0.093 | 0.913 | THRESHOLD_ONLY |
 | contract_C6 | 0.611 | -0.066 | 0.918 | THRESHOLD_ONLY |
+
+*Note: All correlations significant at p<0.001 except C4 (constant values).*
 
 **Key Findings**:
 
@@ -211,6 +215,8 @@ We evaluated the same metrics on 125 Hyena-like configurations using identical p
 | contract_C3 | -0.107 | -0.926 | 0.487 | UNINFORMATIVE |
 | contract_C5 | 0.289 | -0.530 | 0.722 | UNINFORMATIVE |
 | contract_C6 | 0.422 | -0.397 | 0.731 | UNINFORMATIVE |
+
+*Note: C1 and C4 are not reported for Hyena-like architectures due to architectural incompatibility with circulant eigenvalue structure (see §5.2).*
 
 **Key Findings**:
 
@@ -246,7 +252,7 @@ This taxonomy provides actionable guidance: use spectral contracts for recurrenc
 
 Our results provide clear guidance on when to escalate from trivial baselines to spectral contracts:
 
-**For S4-like recurrence architectures**: Contracts are valuable when (1) eigenvalue radius approaches 1.0, (2) eigenvector conditioning κ(V) ≥ 100, and (3) non-normal structure is present. Well-initialized SSMs using methods like LRU [Orvieto et al., 2023] or HiPPO [Gu et al., 2021] are designed to avoid these conditions, making spectral radius analysis sufficient for standard practice.
+**For S4-like recurrence architectures**: Contracts are valuable when (1) eigenvalue radius approaches 1.0, (2) eigenvector conditioning κ(V) ≥ 100, and (3) non-normal structure is present. Standard initialization methods like LRU [Orvieto et al., 2023] and HiPPO [Gu et al., 2021] are designed to place eigenvalues appropriately and maintain structured initialization; whether they consistently produce near-normal matrices in practice requires empirical validation beyond this paper's scope.
 
 **For Hyena-like convolution architectures**: Trivial baselines (especially operator norm) are already optimal. The broad eigenvalue spectra inherent to convolution filter design make amplitude saturation the dominant failure mode, which spectral norms detect effectively.
 
