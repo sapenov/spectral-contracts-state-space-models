@@ -1,0 +1,11 @@
+{
+  "c3_rho": 0.811,
+  "c3_ci_low": 0.697,
+  "c3_ci_high": 0.883,
+  "op_rho": 0.67,
+  "op_ci_low": 0.514,
+  "op_ci_high": 0.772,
+  "per_seed_min": 0.804,
+  "per_seed_max": 0.814,
+  "n": 75
+}

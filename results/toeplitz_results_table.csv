@@ -1,0 +1,5 @@
+Metric,Spearman_rho,DeltaSpearman,AUROC
+trivial_max_operator_norm,0.905,0.0,0.862
+trivial_spectral_radius,0.89,-0.015,0.856
+proxy_non_normality,0.368,-0.538,0.647
+contract_C3,0.073,-0.832,0.529
