@@ -31,7 +31,11 @@ python analysis/regression_analysis.py
 
 ## Documentation
 
-See [QUICKSTART.md](./QUICKSTART.md) for the complete project specification, workstream plan, and theoretical foundation.
+- `RESEARCH_NOTES.md` — Implementation decisions, parameter choices, and reproducibility notes
+- `QUICKSTART.md` — Installation and basic usage
+- `paper/main.pdf` — Full paper (TMLR submission)
+
+See [RESEARCH_NOTES.md](./RESEARCH_NOTES.md) for implementation decisions, experimental design rationale, and reproducibility guidance.
 
 ## License
 

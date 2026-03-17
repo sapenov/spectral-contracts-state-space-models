@@ -136,7 +136,7 @@ spectral_contracts/
 
 ## Scientific Foundation
 
-This implementation follows the specification in `CLAUDE.md.md`, which includes:
+This implementation follows the specification in `RESEARCH_NOTES.md`, which includes:
 
 - **Formal definitions** of spectral contracts with measurable thresholds (§1.2)
 - **Success criteria** SC-1 and SC-2 with specific numerical thresholds (§2.1)
@@ -170,4 +170,4 @@ Based on the demo validation:
 }
 ```
 
-For detailed technical specification, see `CLAUDE.md.md`.
+For detailed technical specification, see `RESEARCH_NOTES.md`.
