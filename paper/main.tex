@@ -30,7 +30,7 @@
 
 Using non-circular linear dynamics outcomes to prevent false correlations, we demonstrate that recurrence-inspired matrices with non-normal transition structure exhibit failure modes that spectral radius analysis misses. Pseudospectral sensitivity achieves Spearman $\rho=0.835$ with dynamical stability outcomes, outperforming the best trivial baseline by $\Delta\text{Spearman}=+0.158$ (n=75, $p<0.001$) and achieving AUROC=0.948 for divergence prediction.
 
-However, convolution-inspired matrices exhibit \textbf{amplitude-dominated failure modes} where operator norm alone achieves $\rho=0.819$ and AUROC=0.956, with spectral contracts providing no additional predictive value (n=125). This architecture-dependent contrast reveals that \textbf{recurrence-inspired families require non-normality-aware diagnostics} while \textbf{convolution-inspired families are already well-served by spectral norms}.
+However, convolution-inspired matrices exhibit \textbf{amplitude-dominated failure modes} where operator norm alone achieves $\rho=0.819$ and AUROC=0.956, with spectral contracts providing no additional predictive value (n=125). This architecture-dependent contrast reveals that \textbf{recurrence-inspired families require non-normality-aware diagnostics} while \textbf{the convolution-inspired families tested here are already well-served by spectral norms}.
 
 We provide practical guidance through our \texttt{ssm-contracts} CLI tool with family-specific risk assessment, and establish methodological principles for testing stability diagnostics in appropriate mathematical regimes.
 
@@ -91,7 +91,7 @@ This architecture-dependent contrast, rather than being a limitation, constitute
 
 \item \textbf{Recurrence-side positive result}: Pseudospectral sensitivity (C3) achieves $\Delta\text{Spearman}=+0.158$ over the best trivial baseline and AUROC=0.948 on the recurrence-inspired family in the non-normal regime (§4.1)
 
-\item \textbf{Cross-family diagnostic contrast}: Evidence that convolution-inspired families are already well-served by operator norm ($\rho=0.819$), while recurrence-inspired families in the non-normal regime require pseudospectral analysis — supporting an architecture-dependent diagnostic contrast in our controlled benchmark (§4.2, §4.3)
+\item \textbf{Cross-family diagnostic contrast}: Evidence that the convolution-inspired families tested here are already well-served by operator norm ($\rho=0.819$), while recurrence-inspired families in the non-normal regime require pseudospectral analysis — supporting an architecture-dependent diagnostic contrast in our controlled benchmark (§4.2, §4.3)
 
 \item \textbf{Research artifact}: \texttt{ssm-contracts} CLI tool implementing these diagnostics with calibrated thresholds and explicit architectural scope documentation (§5)
 \end{enumerate}
@@ -405,10 +405,11 @@ For S4-style and DSS-style architectures with structured recurrence, pseudospect
 For Hyena-style convolution-based architectures, operator norm analysis suffices. Practitioners can avoid pseudospectral computation overhead while maintaining effective risk assessment.
 
 \subsection{Limitations and Future Work}
+\label{sec:limitations}
 
 Our evaluation uses controlled synthetic matrices rather than parameters from actual trained models, which limits direct external validity. As a preliminary bridge, we evaluated our diagnostics on $n=30$ matrices constructed using DSS-style initialization: diagonal eigenvalues in $[0.5, 0.99]$ with random orthogonal rotations introducing moderate non-normality ($\kappa(V) \in \{1, 2, 5, 10, 20\}$). C3 values on these initialized matrices fell in the range $[0.091, 0.511]$ (mean: $0.312$), consistent with the recurrence-inspired regime where our benchmark finds pseudospectral analysis informative. The rank correlation between C3 and linear dynamical growth ratio on these initialized matrices was $\rho = 0.890$, qualitatively consistent with the recurrence-inspired benchmark findings.
 
-As a further bridge to real architectures, we generated operators using the S4D-Real initialization scheme \citep{gu2022efficiently} with learned rotations simulating post-initialization training updates. On $n = 30$ operators (hidden size $= 64$, 30 random seeds with varying rotation strengths), C3 achieved Spearman $\rho = 0.269$ (95\% bootstrap CI: [-0.151, 0.589]), weaker than the synthetic benchmark but in the predicted direction. C3 values ranged [0.031, 0.195] (mean: 0.086), confirming that realistic S4/DSS operators at initialization occupy a regime where pseudospectral analysis provides signal, though the correlation is attenuated compared to our controlled non-normal benchmark.
+As a further bridge to real architectures, we generated operators using the S4D-Real initialization scheme \citep{gu2022efficiently} with learned rotations simulating post-initialization training updates. On $n = 30$ operators (hidden size $= 64$, 30 random seeds with varying rotation strengths), C3 achieved Spearman $\rho = 0.269$ (95\% bootstrap CI: [-0.151, 0.589]), weaker than the synthetic benchmark but in the predicted direction. C3 values ranged [0.031, 0.195] (mean: 0.086), confirming that realistic S4/DSS operators at initialization occupy a regime where pseudospectral analysis provides weak but directionally consistent signal, though the correlation is attenuated compared to our controlled non-normal benchmark.
 
 Full validation on actual SSM training trajectories — including post-training checkpoints and training-time instability events — remains important future work.
 
@@ -421,13 +422,13 @@ Our architectural contrast currently covers two major SSM families. Extension to
 
 \section{Conclusion}
 
-We establish evidence for architecture-dependent stability diagnostics in state-space models through systematic evaluation on controlled synthetic matrix families. Recurrence-inspired matrices benefit from pseudospectral sensitivity analysis, achieving $\Delta\text{Spearman}=+0.158$ improvement over operator norm baselines. Convolution-inspired matrices exhibit amplitude-dominated failure modes where operator norm analysis suffices. This operator norm sufficiency held not only for exactly normal circulant convolution matrices but also for a mildly non-normal Toeplitz convolution variant (operator norm $\rho = 0.905$, C3 $\rho = 0.073$), supporting the architecture-dependent contrast beyond the idealized circulant case.
+We establish evidence for architecture-dependent stability diagnostics in state-space models through systematic evaluation on controlled synthetic matrix families. Recurrence-inspired matrices benefit from pseudospectral sensitivity analysis, achieving $\Delta\text{Spearman}=+0.158$ improvement over operator norm baselines. Convolution-inspired matrices exhibit amplitude-dominated failure modes where operator norm analysis suffices. This operator norm sufficiency held not only for exactly normal circulant convolution matrices but also for a mildly non-normal Toeplitz convolution variant (operator norm $\rho = 0.905$, C3 $\rho = 0.073$), supporting the architecture-dependent contrast beyond the idealized circulant case. External validity bridges in \S\ref{sec:limitations} show that the recurrence-side diagnostic transfers to DSS-style initializations (C3 $\rho = 0.890$) but attenuates on more realistic S4D-Real operators ($\rho = 0.269$, CI crossing zero), suggesting the synthetic benchmark isolates a real mechanism that dilutes in practice.
 
 This empirical contrast provides practical guidance for SSM pre-training: escalate to pseudospectral analysis for recurrence-based architectures, rely on operator norm for convolution-based architectures. Our \texttt{ssm-contracts} tool implements these diagnostics with calibrated thresholds and explicit architectural scope documentation.
 
 The methodological framework — non-circular linear dynamics outcomes, regime-appropriate parameter sweeps, architecture-specific evaluation — establishes principles for evaluating stability diagnostics in appropriate mathematical regimes. Future work should extend this contrast to additional SSM families and validate on real training trajectories.
 
-\textbf{Reproducibility Statement}: All code, data, and experimental configurations are available at \url{https://github.com/spectral-contracts/ssm-stability-diagnostics}. The synthetic matrix generation, contract computations, and statistical analyses can be reproduced using the provided scripts.
+\textbf{Reproducibility Statement}: All code, data, and experimental configurations are available at \url{https://github.com/sapenov/spectral-contracts-state-space-models}. The synthetic matrix generation, contract computations, and statistical analyses can be reproduced using the provided scripts.
 
 
 \begin{figure}[t]
