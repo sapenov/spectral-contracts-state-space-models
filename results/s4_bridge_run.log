@@ -1,0 +1,26 @@
+=== S4D-Real Bridge Experiment ===
+Using S4D-Real initialization scheme from Gu et al. 2022...
+Generating 6 S4D-Real initialized matrices...
+  Processing seed 1/6...
+    C3=0.000, op_norm=0.995, growth=0.009
+  Processing seed 2/6...
+    C3=0.000, op_norm=0.995, growth=0.010
+  Processing seed 3/6...
+    C3=0.000, op_norm=0.995, growth=0.009
+  Processing seed 4/6...
+    C3=0.000, op_norm=0.995, growth=0.010
+  Processing seed 5/6...
+    C3=0.000, op_norm=0.995, growth=0.010
+  Processing seed 6/6...
+    C3=0.000, op_norm=0.995, growth=0.010
+
+Saved to /mnt/c/Users/Khazret/PycharmProjects/Spectral_Contracts/results/s4_bridge_real_operators.csv
+
+=== Summary Statistics ===
+Valid matrices: 6
+C3 range: [0.000, 0.000], mean: 0.000
+Operator norm range: [0.995, 0.995]
+Spectral radius range: [0.995, 0.995]
+Henrici range: [0.0000, 0.0000]
+Growth ratio range: [0.009, 0.010]
+Diverged: 0 / 6
