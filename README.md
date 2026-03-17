@@ -31,7 +31,7 @@ python analysis/regression_analysis.py
 
 ## Documentation
 
-See [CLAUDE.md.md](./CLAUDE.md.md) for the complete project specification, workstream plan, and theoretical foundation.
+See [QUICKSTART.md](./QUICKSTART.md) for the complete project specification, workstream plan, and theoretical foundation.
 
 ## License
 
