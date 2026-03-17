@@ -45,3 +45,6 @@ desktop.ini
 .idea/
 .vscode/
 *.iml
+
+# External dependencies
+external/
