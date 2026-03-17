@@ -1,4 +1,4 @@
-# Spectral Contracts — AI Agent Starter Bundle
+# Spectral Contracts
 
 **Computable Spectral Diagnostics for Long-Horizon Stability in SSMs**
 
